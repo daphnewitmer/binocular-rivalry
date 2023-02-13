@@ -255,13 +255,13 @@ class MEG_BR_Trial(Trial):
 
             super(MEG_BR_Trial, self).key_event(ev)
 
-    def run(self):
-        if self.parameters['color_eye_combination'] == -1:
+    def run(self, color_eye_combination):
+        if color_eye_combination == -1:
             self.session.red_grating_1.setPos(self.session.left_pos)
             self.session.green_grating_1.setPos(self.session.right_pos)
             self.session.red_grating_2.setPos(self.session.left_pos)
             self.session.green_grating_2.setPos(self.session.right_pos)
-        if self.parameters['color_eye_combination'] == 1:
+        if color_eye_combination == 1:
             self.session.red_grating_1.setPos(self.session.right_pos)
             self.session.green_grating_1.setPos(self.session.left_pos)
             self.session.red_grating_2.setPos(self.session.right_pos)

@@ -380,7 +380,7 @@ class MEG_BR_Session(EyelinkSession):
 
         return texture
 
-    def run(self):
+    def run(self, color_eye_combination):
         """run the session"""
 #        print("we actually start")
 #        self.port = parallel.ParallelPort(address=0x3050)
@@ -397,7 +397,7 @@ class MEG_BR_Session(EyelinkSession):
         for trial_id, trial in enumerate(self.trials):
             print('about to run the trial')
             trial.ID = trial_id
-            trial.run()
+            trial.run(color_eye_combination)
 
             if self.stopped == True:
                 break
