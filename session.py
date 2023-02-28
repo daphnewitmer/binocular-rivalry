@@ -233,8 +233,10 @@ class MEG_BR_Session(EyelinkSession):
                                                interpolate=True)   
 
         # fusion aid background
-        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
-            tex_size=self.config['background_tex_size'], amplitude_exponent=self.config['background_amplitude_exponent']))))-1
+#        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
+#            tex_size=self.config['background_tex_size'], amplitude_exponent=self.config['background_amplitude_exponent']))))-1
+            
+        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_guassian_texture(tex_size=self.config['background_tex_size']))))-1
         self.bg_stimulus_left = visual.GratingStim(self.screen,
                                                    tex=bg_tex,
                                                    mask=None,
@@ -341,6 +343,14 @@ class MEG_BR_Session(EyelinkSession):
         texture[texture < 0] = 0
         texture[texture > 1] = 1
 
+        return texture
+        
+    def create_bg_guassian_texture(self, tex_size):
+        texture = np.random.normal(loc=0.5, scale=0.5, size=(tex_size, tex_size))
+        
+        texture[texture < 0] = 0
+        texture[texture > 1] = 1
+        
         return texture
 
     def run(self):
