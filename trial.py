@@ -14,7 +14,7 @@ import random
 class MEG_BR_Trial(Trial):
    
     # Define the display framework upon which stimulus is presented
-    def __init__(self, ti, run_type, color_eye_combination, config, parameters, *args, **kwargs):
+    def __init__(self, ti, run_type, duration, color_eye_combination, config, parameters, *args, **kwargs):
         self.color = '#0066CC'
         self.previous_frame = 0
         self.val= 0
@@ -23,10 +23,11 @@ class MEG_BR_Trial(Trial):
         self.ID = ti
         self.repeat = 0
         self.trigger = 999
+        self.duration= duration
 
         phase_durations = [100000,
                            config['fixation_duration'],
-                           config['stimulus_duration'], 
+                           self.duration, 
                            config['fixation_duration'],
                            config['count_duration']
                            ]
@@ -51,15 +52,15 @@ class MEG_BR_Trial(Trial):
 
         safety_margin = 10.0
         nr_frames_in_stimulus = int(
-            (self.parameters['stimulus_duration'] + safety_margin) * self.parameters['refresh_frequency'])
+            (self.duration + safety_margin) * self.parameters['refresh_frequency'])
         frame_times = np.linspace(
-            0, self.parameters['stimulus_duration'] + safety_margin, nr_frames_in_stimulus, endpoint=False)
+            0, self.duration + safety_margin, nr_frames_in_stimulus, endpoint=False)
 
         if parameters['replay'] == 1:
 
             beh_id = [random.choice([1,3])] #1,3 correspond to button press
             beh_time = [random.normalvariate(2,0.25)]
-            while beh_time[-1] < self.parameters['stimulus_duration']:
+            while beh_time[-1] < self.duration:
                 if beh_id[-1] == 3:
                     beh_id.append(1) 
                 else:

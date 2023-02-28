@@ -36,17 +36,17 @@ class MEG_BR_Session(EyelinkSession):
         if "loc" in self.run_type:
             print("running localizer")
             self.config['replay'] = 1
-            self.config['stimulus_duration'] = 240.0
+            self.stimulus_duration = self.config['loc_stimulus_duration'] # 240
         else:
             print("no localizer")
             self.config['replay'] = 0
-            self.config['stimulus_duration'] = 180.0
+            self.stimulus_duration = self.config['br_stimulus_duration'] # 180
             
         if self.block_type.lower() == "practice":
             print('running practice')
-            self.config['stimulus_duration'] = self.config['stimulus_duration'] / 2
+            self.stimulus_duration = self.stimulus_duration / 2
             
-        print(f"run time: {self.config['stimulus_duration']}")
+        print(f"run time: {self.stimulus_duration}")
         # save settings to default settings file
         with open('default_settings.json', 'w') as outfile:
             json.dump(self.config, outfile, indent=2)
@@ -73,6 +73,7 @@ class MEG_BR_Session(EyelinkSession):
         # random.shuffle(self.trial_parameters) #shuffles the trials randomly
         self.trials = [MEG_BR_Trial(ti=trial_id,
                                     run_type=self.run_type,
+                                    duration=self.stimulus_duration,
                                     color_eye_combination = self.color_combi,
                                     config=self.config,
                                     screen=self.screen,
