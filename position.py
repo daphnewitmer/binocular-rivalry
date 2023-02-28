@@ -9,7 +9,7 @@ from psychopy import gui
 class Adjust_Stimuli_Pos(EyelinkSession):
     def __init__(self, *args, **kwargs):
         
-        super(Adjust_Stimuli_Pos, self).__init__(*args, **kwargs)
+        super(Adjust_Stimuli_Pos, self).__init__('pilot', None, None, None, 1, *args, **kwargs)
         
         config_file = os.path.join(os.path.abspath(os.getcwd()), 'default_settings.json')
         with open(config_file) as config_file: 

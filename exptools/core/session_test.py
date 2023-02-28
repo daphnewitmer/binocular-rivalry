@@ -31,10 +31,12 @@ from .. import config
 
 class Session(object):
     """Session is a main class that creates screen and file properties"""
-    def __init__(self, subject_initials, index_number, **kwargs):
+    def __init__(self, participant_nr, block_type, run_type, color_combi, **kwargs):
         super(Session, self).__init__()
-        self.subject_initials = subject_initials
-        self.index_number = index_number
+        self.participant_nr = participant_nr
+        self.block_type = block_type
+        self.run_type = run_type
+        self.color_combi = color_combi
                 
         self.clock = core.Clock()
         
@@ -87,7 +89,7 @@ class Session(object):
         self.screen.setMouseVisible(self.mouse_visible)
         event.Mouse(visible=self.mouse_visible, win=self.screen)
 
-        self.screen.setColor(self.background_color)
+        self.screen.setColor(self.background_color, colorSpace='hsv')
         
         self.screen.background_color = self.background_color
         self.screen_pix_size = self.size
@@ -108,11 +110,15 @@ class Session(object):
         """create output file"""
         now = datetime.datetime.now()
         opfn = now.strftime("%Y-%m-%d_%H.%M.%S")
+        if self.participant_nr.lower() == "pilot":
+            file_name = f"{self.participant_nr}_{self.block_type}_{self.run_type}_{opfn}"
+        else:
+            file_name = f"P{self.participant_nr}_{self.block_type}_{self.run_type}_{opfn}"
         
         if not os.path.isdir(data_directory):
             os.mkdir(data_directory)
             
-        self.output_file = os.path.join(data_directory, self.subject_initials + '_' + str(self.index_number) + '_' + opfn )
+        self.output_file = os.path.join(data_directory, file_name)
     
     def open_input_file(self):
         """
@@ -120,7 +126,7 @@ class Session(object):
         we assume the input data consists of two arrays - one for parameters and one for timings. 
         the two arrays' rows will be trials.
         """
-        self.input_file_name = self.index_number + '.pkl'
+        self.input_file_name = self.block_type + '.pkl'
         ipf = open(self.input_file_name)
         self.input_data = pkl.load(ipf)
         ipf.close()
@@ -197,8 +203,9 @@ class Session(object):
 class MRISession(Session):
 
     def __init__(self, 
-                 subject_initials,
-                 index_number,
+                 participant_nr,
+                 block_type,
+                 run_type, 
                  tr=2, 
                  simulate_mri_trigger=True, 
                  mri_trigger_key=None, 
@@ -206,7 +213,7 @@ class MRISession(Session):
                  **kwargs):
 
 
-        super(MRISession, self).__init__(subject_initials, index_number, *args, **kwargs)
+        super(MRISession, self).__init__(participant_nr, block_type, *args, **kwargs)
 
         self.simulate_mri_trigger = simulate_mri_trigger
 
@@ -230,9 +237,9 @@ class MRISession(Session):
 
 class EyelinkSession(Session):
     """docstring for EyelinkSession"""
-    def __init__(self, subject_initials, index_number, tracker_on=0, *args, **kwargs):
+    def __init__(self, participant_nr, block_type, tracker_on=0, *args, **kwargs):
 
-        super(EyelinkSession, self).__init__(subject_initials, index_number, *args, **kwargs)
+        super(EyelinkSession, self).__init__(participant_nr, block_type, *args, **kwargs)
 
         for argument in ['n_calib_points', 'sample_rate', 'calib_size', 'x_offset']:
             value = kwargs.pop(argument, config.get('eyetracker', argument))
@@ -291,7 +298,7 @@ class EyelinkSession(Session):
          and output file names are created.
         """
 
-        self.eyelink_temp_file = self.subject_initials[:2] + '_' + str(self.index_number) + '_' + str(np.random.randint(99)) + '.edf'
+        self.eyelink_temp_file = self.participant_nr[:2] + '_' + str(self.block_type) + '_' + str(np.random.randint(99)) + '.edf'
 
         if tracker_on:
             # create actual tracker
@@ -614,8 +621,8 @@ class StarStimSession(EyelinkSession):
     It assumes an active recording, using NIC already connected over bluetooth.
     Triggers land in the file that's already set up and recording.
     """
-    def __init__(self, subject_initials, index_number, connect_to_starstim = False, TCP_IP = '10.0.1.201', TCP_PORT = 1234):
-        super(StarStimSession, self).__init__(subject_initials, index_number)
+    def __init__(self, participant_nr, block_type, connect_to_starstim = False, TCP_IP = '10.0.1.201', TCP_PORT = 1234):
+        super(StarStimSession, self).__init__(participant_nr, block_type)
         self.setup_starstim_connection(TCP_IP = TCP_IP, TCP_PORT = TCP_PORT, connect_to_starstim = connect_to_starstim)
 
     def setup_starstim_connection(self, TCP_IP = '10.0.1.201', TCP_PORT = 1234, connect_to_starstim = True):

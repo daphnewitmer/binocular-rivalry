@@ -5,7 +5,8 @@ from trial import MEG_BR_Trial
 from ctypes import windll
 #windll.LoadLibrary("C:\\PROGS\\inpoutx64.dll")
 
-from psychopy import visual, clock, parallel, filters
+from psychopy import visual, clock, parallel, core
+from psychopy.visual import filters
 import numpy as np
 import os
 import exptools
@@ -14,6 +15,7 @@ import glob
 import random
 import pandas as pd
 from copy import copy
+import json
 
 
 class MEG_BR_Session(EyelinkSession):
@@ -26,12 +28,35 @@ class MEG_BR_Session(EyelinkSession):
             os.getcwd()), 'default_settings.json')
 
         with open(config_file) as config_file:
-            config = json.load(config_file) # This is it!! Here is where I change 
-
-        self.config = config
+            self.config = json.load(config_file) 
+        
+        # set config settings for run
+        self.config['color_eye_combination'] = self.color_combi
+        
+        if "loc" in self.run_type:
+            print("running localizer")
+            self.config['replay'] = 1
+            self.config['stimulus_duration'] = 240.0
+        else:
+            print("no localizer")
+            self.config['replay'] = 0
+            self.config['stimulus_duration'] = 180.0
+            
+        if self.block_type.lower() == "practice":
+            print('running practice')
+            self.config['stimulus_duration'] = self.config['stimulus_duration'] / 2
+            
+        print(f"run time: {self.config['stimulus_duration']}")
+        # save settings to default settings file
+        with open('default_settings.json', 'w') as outfile:
+            json.dump(self.config, outfile, indent=2)
+        
+        # save default settings file for second run of participant
+        with open(f"data/{self.participant_nr}_default_settings.json", "w") as outfile:
+            json.dump(self.config, outfile, indent=4)
+        
         self.setup_stimuli()
         self.create_trials()
-
         self.stopped = False
 
     def create_trials(self):
@@ -47,6 +72,8 @@ class MEG_BR_Session(EyelinkSession):
                                   }]
         # random.shuffle(self.trial_parameters) #shuffles the trials randomly
         self.trials = [MEG_BR_Trial(ti=trial_id,
+                                    run_type=self.run_type,
+                                    color_eye_combination = self.color_combi,
                                     config=self.config,
                                     screen=self.screen,
                                     session=self,
@@ -65,8 +92,8 @@ class MEG_BR_Session(EyelinkSession):
 
         self.right_pos = [self.screen.size[0]/4 + self.deg2pix(self.config['x_offset_right_eye']),
                           self.deg2pix(self.config['y_offset_right_eye'])]
-
-        # fixations
+                    
+        # fixation dots
         self.fixation_left = visual.GratingStim(self.screen,
                                                 tex='sin',
                                                 mask='raisedCos',
@@ -77,6 +104,7 @@ class MEG_BR_Session(EyelinkSession):
                                                     'fringeWidth': 0.2},
                                                 color='white',
                                                 sf=0,
+                                                autoDraw=True,
                                                 pos=self.left_pos)
 
         self.fixation_right = visual.GratingStim(self.screen,
@@ -89,8 +117,10 @@ class MEG_BR_Session(EyelinkSession):
                                                      'fringeWidth': 0.2},
                                                  color='white',
                                                  sf=0,
+                                                 autoDraw=True,
                                                  pos=self.right_pos)
-
+        
+        # space just around the fixation dot
         self.fixation_surround_left = visual.GratingStim(self.screen,
                                                          tex='sin',
                                                          mask='raisedCos',
@@ -118,7 +148,7 @@ class MEG_BR_Session(EyelinkSession):
         x, y = np.meshgrid(np.linspace(-self.config['BR_stim_size']*self.config['BR_stim_sf']*np.pi, self.config['BR_stim_size']*self.config['BR_stim_sf']*np.pi, 512, endpoint=True),
                            np.linspace(-self.config['BR_stim_size']*self.config['BR_stim_sf']*np.pi, self.config['BR_stim_size']*self.config['BR_stim_sf']*np.pi, 512, endpoint=True))
 
-# New Version        
+        # New Version        
         # Create gratings
         red_grating_rad = np.sign(visual.filters.makeGrating(res=512, cycles=1.0)) # radial gratings
         red_grating_exp = np.sign(visual.filters.makeGrating(res=512, cycles=1.0, ori=90)) # angular gratings orthogonal to the radial one, hence orientation is 90 deg
@@ -199,76 +229,7 @@ class MEG_BR_Session(EyelinkSession):
                                                contrast=1,
                                                color='black',
                                                colorSpace='hsv',
-                                               interpolate=True)
-                                               
-#      #older version
-#      
-#        self.red_grating_1 = visual.RadialStim(self.screen,
-#                                                   tex='sqrXsqr',
-#                                                   radialCycles=3,
-#                                                   angularCycles=4,
-#                                                   # angularPhase=3.14/4.0,
-#                                                   # radialPhase=3.14/4.0,
-#                                                   mask='raisedCos',
-#                                                   size=self.deg2pix(
-#                                                       self.config['BR_stim_size']),
-#                                                   texRes=512,
-#                                                   maskParams={'fringeWidth': 0.2},
-#                                                   contrast=1,
-#                                                   color='red',
-#                                                   colorSpace='black',
-#                                                   interpolate=True)
-#    
-#        self.green_grating_1 = visual.RadialStim(self.screen,
-#                                                     tex='sqrXsqr',
-#                                                     radialCycles=2,
-#                                                     angularCycles=8,
-#                                                     # angularPhase=3.14/4.0,
-#                                                     # radialPhase=3.14/4.0,
-#                                                     mask='raisedCos',
-#                                                     size=self.deg2pix(
-#                                                         self.config['BR_stim_size']),
-#                                                     texRes=512,
-#                                                     maskParams={
-#                                                         'fringeWidth': 0.2},
-#                                                     color='green',
-#                                                     contrast=1,
-#                                                     interpolate=True)
-#        self.green_grating_1.setOpacity(self.config['BR_stim_RG_ratio'])
-#    
-#        self.red_grating_2 = visual.RadialStim(self.screen,
-#                                                   tex='sqrXsqr',
-#                                                   radialCycles=3,
-#                                                   angularCycles=4,
-#                                                   # angularPhase=3.14,
-#                                                   # radialPhase=3.14/2.0,
-#                                                   mask='raisedCos',
-#                                                   size=self.deg2pix(
-#                                                       self.config['BR_stim_size']),
-#                                                   texRes=512,
-#                                                   maskParams={'fringeWidth': 0.2},
-#                                                   contrast=-1,
-#                                                   color='red',
-#                                                   colorSpace='white',
-#                                                   interpolate=True)
-#    
-#        self.green_grating_2 = visual.RadialStim(self.screen,
-#                                                     tex='sqrXsqr',
-#                                                     radialCycles=2,
-#                                                     angularCycles=8,
-#                                                     # angularPhase=3.14,
-#                                                     # radialPhase=3.14/2.0,
-#                                                     mask='raisedCos',
-#                                                     size=self.deg2pix(
-#                                                         self.config['BR_stim_size']),
-#                                                     texRes=512,
-#                                                     maskParams={
-#                                                         'fringeWidth': 0.2},
-#                                                     color='green',
-#                                                     contrast=-1,
-#                                                     interpolate=True)
-#        self.green_grating_2.setOpacity(self.config['BR_stim_RG_ratio'])
-    
+                                               interpolate=True)   
 
         # fusion aid background
         bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
@@ -323,7 +284,7 @@ class MEG_BR_Session(EyelinkSession):
                                                         pos=self.left_pos,
                                                         italic=True,
                                                         height=20,
-                                                        alignHoriz='center',
+                                                        alignText='center',
                                                         color=(1, 0, 0))
 
         self.counter_instruction_right = visual.TextStim(self.screen,
@@ -332,7 +293,7 @@ class MEG_BR_Session(EyelinkSession):
                                                          pos=self.right_pos,
                                                          italic=True,
                                                          height=20,
-                                                         alignHoriz='center',
+                                                         alignText='center',
                                                          color=(1, 0, 0))
 
         counter_left_pos = copy(self.left_pos)
@@ -343,7 +304,7 @@ class MEG_BR_Session(EyelinkSession):
                                             pos=counter_left_pos,
                                             italic=True,
                                             height=20,
-                                            alignHoriz='center',
+                                            alignText='center',
                                             color=(1, 1, 1))
 
         counter_right_pos = copy(self.right_pos)
@@ -354,11 +315,12 @@ class MEG_BR_Session(EyelinkSession):
                                              pos=counter_right_pos,
                                              italic=True,
                                              height=20,
-                                             alignHoriz='center',
+                                             alignText='center',
                                              color=(1, 1, 1))
 
     def create_bg_texture(self, tex_size=1024, amplitude_exponent=1.0):
-
+        """" background of stimuli: 1/f noise (white noise)"""
+        
         t2 = int(tex_size/2)
         X, Y = np.meshgrid(np.linspace(-t2, t2, tex_size, endpoint=True),
                            np.linspace(-t2, t2, tex_size, endpoint=True))
@@ -380,9 +342,8 @@ class MEG_BR_Session(EyelinkSession):
 
         return texture
 
-    def run(self, color_eye_combination):
+    def run(self):
         """run the session"""
-#        print("we actually start")
 #        self.port = parallel.ParallelPort(address=0x3050)
 #        self.port.setData(255)
         if self.config['use_parallel'] == 1:
@@ -392,22 +353,40 @@ class MEG_BR_Session(EyelinkSession):
             self.port = parallel.ParallelPort(address=0x3050)
             self.port.setData(0)
 
-        # cycle through trials
-
+        # loop through trials
         for trial_id, trial in enumerate(self.trials):
-            print('about to run the trial')
             trial.ID = trial_id
-            trial.run(color_eye_combination)
-
+            trial.run()
+            
             if self.stopped == True:
                 break
 
-        self.close()
+        self.close(trial)
 
-    def close(self):
-        if self.trial_parameters[0]['replay'] == 0:  # we save
+    def close(self, trial):
+        file_name = f"{self.participant_nr}_{self.block_type}_{self.run_type}.tsv"
+        if not self.participant_nr == "Pilot":
+            file_name = f"P{file_name}"
+        
+        # for self report trials: save button press times
+        if 'self_rep' in self.run_type: 
+            print('saving self report')
             df = pd.DataFrame(
                 self.trials[0].timing_array, columns=['ID', 'Time'])
             df.to_csv(os.path.join(
-                os.path.split(self.output_file)[0], self.subject_initials + '_' + str(self.index_number) + '.tsv'), sep='\t')
-        super(MEG_BR_Session, self).close()
+                os.path.split(self.output_file)[0], file_name), sep='\t')
+                
+        # for localizer trials: save stimuli switch times
+        elif self.run_type in ["loc_1", "loc_2"]:   
+            print('saving localizer')
+            df = trial.behavior_df
+            df.to_csv(os.path.join(
+                os.path.split(self.output_file)[0], file_name), sep='\t')
+            
+        # for localizer with fixation task: save [stimuli switch + fixation switch] + button press 
+        elif self.run_type in ["loc_fix_task_1", "loc_fix_task_2"]:
+            print('saving localizer + fix')
+            df = pd.DataFrame(
+                self.trials[0].timing_array, columns=['ID', 'Time'])
+            df.to_csv(os.path.join(os.path.split(self.output_file)[0], file_name), sep='\t')
+        
