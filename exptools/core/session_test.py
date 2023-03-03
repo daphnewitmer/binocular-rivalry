@@ -25,18 +25,22 @@ import numpy as np
 import pygaze
 from pygaze import libscreen 
 from pygaze import eyetracker
+from pathlib import Path
+import random
+import json
 
 from .. import config
 
 
 class Session(object):
     """Session is a main class that creates screen and file properties"""
-    def __init__(self, participant_nr, block_type, run_type, color_combi, **kwargs):
+    def __init__(self, session_info, **kwargs):
         super(Session, self).__init__()
-        self.participant_nr = participant_nr
-        self.block_type = block_type
-        self.run_type = run_type
-        self.color_combi = color_combi
+        self.participant_nr = session_info['participant_nr']
+        self.block_type = session_info['block_type']
+        self.run_type = session_info['run_type']
+        self.session_nr = session_info['session_nr']
+        self.config_path = f"config/{self.participant_nr}_default_settings.json"
                 
         self.clock = core.Clock()
         
@@ -54,7 +58,7 @@ class Session(object):
     
     def create_screen(self, engine='psychopy', **kwargs):
 
-         #Set arguments from config file or kwargs
+         # set arguments from config file or kwargs
         for argument in ['size', 'full_screen', 'background_color', 'gamma_scale',
                          'physical_screen_size', 'physical_screen_distance',
                          'max_lums', 'wait_blanking', 'screen_nr', 'mouse_visible']:
@@ -109,11 +113,12 @@ class Session(object):
     def create_output_filename(self, data_directory = 'data'):
         """create output file"""
         now = datetime.datetime.now()
-        opfn = now.strftime("%Y-%m-%d_%H.%M.%S")
-        if self.participant_nr.lower() == "pilot":
-            file_name = f"{self.participant_nr}_{self.block_type}_{self.run_type}_{opfn}"
-        else:
-            file_name = f"P{self.participant_nr}_{self.block_type}_{self.run_type}_{opfn}"
+        date = now.strftime("%m-%d_%H.%M")
+        
+        file_name = f"{self.participant_nr}S{self.session_nr}_{self.block_type}_{self.run_type}_{date}.tsv"
+    
+        if not self.participant_nr.lower() == "pilot":
+            file_name = f"P{file_name}"
         
         if not os.path.isdir(data_directory):
             os.mkdir(data_directory)
@@ -237,9 +242,9 @@ class MRISession(Session):
 
 class EyelinkSession(Session):
     """docstring for EyelinkSession"""
-    def __init__(self, participant_nr, block_type, tracker_on=0, *args, **kwargs):
+    def __init__(self, session_info, tracker_on=0, *args, **kwargs):
 
-        super(EyelinkSession, self).__init__(participant_nr, block_type, *args, **kwargs)
+        super(EyelinkSession, self).__init__(session_info, *args, **kwargs)
 
         for argument in ['n_calib_points', 'sample_rate', 'calib_size', 'x_offset']:
             value = kwargs.pop(argument, config.get('eyetracker', argument))
@@ -614,7 +619,31 @@ class EyelinkSession(Session):
         point_indices = ', '.join(['%d'%pi for pi in range(self.n_calib_points)])
 
         return calibration_targets, validation_targets, point_indices
+        
+    def load_config_file(self):
+        
+        # if personal file not exists, create file with copy of default
+        if not Path(self.config_path).is_file():
+            print('create personal config file')
+            config_file = os.path.join(os.path.abspath(
+                os.getcwd()), 'default_settings.json')
+            with open(config_file) as config_file:
+                config = json.load(config_file)
+                
+#            config['color_eye_combination'] = random.choice([-1, 1])
+            with open(self.config_path, "w") as outfile:
+                json.dump(config, outfile, indent=2)
 
+        print(f'open config file for {self.participant_nr}')
+        config_file = os.path.join(os.path.abspath(os.getcwd()), self.config_path)
+            
+        with open(config_file) as config_file:
+            self.config = json.load(config_file) 
+            
+    def save_config_file(self):
+        # save personal settings file for participant in config folder
+        with open(self.config_path, "w") as outfile:
+            json.dump(self.config, outfile, indent=2)
 
 class StarStimSession(EyelinkSession):
     """StarStimSession adds starstim EEG trigger functionality to the EyelinkSession.

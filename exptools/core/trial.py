@@ -2,6 +2,7 @@ import numpy as np
 from .session_test import MRISession
 from psychopy import logging, event
 import time as time_module 
+from psychopy import clock
 
 class Trial(object):
     def __init__(self, parameters = {}, phase_durations = [], session = None, screen = None, tracker = None):
@@ -68,8 +69,11 @@ class Trial(object):
             else:
                 self.session.play_sound( sound_index = 1 )
 
-    def draw(self):
+    def draw(self, p):
         """draw function of the Trial superclass finishes drawing by clearing, drawing the viewport and swapping buffers"""
+#        if p == True:
+#            print(clock.getTime())
+#            print('-------------------')
         self.screen.flip()
 
     def phase_forward(self):

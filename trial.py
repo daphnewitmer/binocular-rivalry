@@ -24,6 +24,7 @@ class MEG_BR_Trial(Trial):
         self.repeat = 0
         self.trigger = 999
         self.duration= duration
+        self.p = False
 
         phase_durations = [100000,
                            config['fixation_duration'],
@@ -57,7 +58,7 @@ class MEG_BR_Trial(Trial):
             0, self.duration + safety_margin, nr_frames_in_stimulus, endpoint=False)
 
         if parameters['replay'] == 1:
-
+        
             beh_id = [random.choice([1,3])] #1,3 correspond to button press
             beh_time = [random.normalvariate(2,0.25)]
             while beh_time[-1] < self.duration:
@@ -217,6 +218,7 @@ class MEG_BR_Trial(Trial):
             
             # for localizer fixation task: change fixation dot color
             if "fix" in self.run_type:
+                event_nr = int(4) # change fixation dot color to blue
                 if self.previous_frame + self.val <= self.frame:
                     if self.color == '#0066CC':
                         self.color = "white"  
@@ -224,31 +226,42 @@ class MEG_BR_Trial(Trial):
                     else:
                         self.color= '#0066CC'
                         self.val = 80
-                        self.session.port.setData("blue")
-                        core.wait(0.005)
+                        self.session.port.setData(event_nr)
+#                        self.p = True
+#                        print('-------trigger fix---------')
+#                        print(clock.getTime())
+                        self.timing_array.append(
+                                [int(event_nr), clock.getTime() - self.last_phase_time])
                         
                     self.session.port.setData(0)
                     self.previous_frame = self.frame
                     self.session.fixation_left.color = self.color
                     self.session.fixation_right.color = self.color
-            
+                    
             # add triggers for red-green switch localizer
             if 'loc' in self.run_type.lower():
                 red=1
-                green=2
+                green=3
                 
                 if self.session.config['use_parallel'] == 1:
                     if present_green_grating.opacity == 0:
                         if self.trigger is not red:
                             self.trigger = red
                             self.session.port.setData(self.trigger)
-                            core.wait(0.005)
                             self.session.port.setData(0)
+                            self.timing_array.append(
+                                [int(self.trigger), clock.getTime() - self.last_phase_time])
                     elif present_red_grating.opacity == 0:
                         if self.trigger is not green:
                             self.trigger = green
                             self.session.port.setData(self.trigger)
-                            core.wait(0.005)
+                            # checking time, can be removed #
+#                            self.p = True
+#                            print('-------trigger stimuli---------')
+#                            print(clock.getTime())
+                            #-------------------------#
+                            self.timing_array.append(
+                                [int(self.trigger), clock.getTime() - self.last_phase_time])
                             self.session.port.setData(0)
 
 #        elif (self.phase == 4):
@@ -261,7 +274,8 @@ class MEG_BR_Trial(Trial):
 #            self.session.counter_right.draw()
 
         # filp screen so everyting that has been drawn will be displayed
-        super(MEG_BR_Trial, self).draw()
+        super(MEG_BR_Trial, self).draw(self.p)
+        self.p = False
 
     def event(self):
 

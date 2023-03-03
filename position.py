@@ -7,14 +7,12 @@ import numpy as np
 from psychopy import gui
 
 class Adjust_Stimuli_Pos(EyelinkSession):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, session_info, *args, **kwargs):
         
-        super(Adjust_Stimuli_Pos, self).__init__('pilot', None, None, None, 1, *args, **kwargs)
+        super(Adjust_Stimuli_Pos, self).__init__(session_info, *args, **kwargs)
         
-        config_file = os.path.join(os.path.abspath(os.getcwd()), 'default_settings.json')
-        with open(config_file) as config_file: 
-            self.config = json.load(config_file) 
-            
+        self.load_config_file()
+        
         self.left_pos = [-self.screen.size[0]/4 + self.deg2pix(self.config['x_offset_left_eye']),
                                  self.deg2pix(self.config['y_offset_left_eye'])]
 
@@ -24,7 +22,9 @@ class Adjust_Stimuli_Pos(EyelinkSession):
         self.draw_stimuli()
                                   
     def create_stimuli(self):
-        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_guassian_texture(tex_size=self.config['background_tex_size']))))-1
+#        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_guassian_texture(tex_size=self.config['background_tex_size']))))-1
+        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
+            tex_size=self.config['background_tex_size'], amplitude_exponent=self.config['background_amplitude_exponent']))))-1
             
         this_instruction_string = """\n\nPlease keep fixation on the dot"""
             
@@ -120,7 +120,7 @@ class Adjust_Stimuli_Pos(EyelinkSession):
                                                 pos=self.left_pos,
                                                 italic=True,
                                                 height=20,
-                                                alignHoriz='center',
+                                                alignText='center',
                                                 color=(1, 0, 0))
         self.instruction_right = visual.TextStim(self.screen,
                                                  text=this_instruction_string,
@@ -128,7 +128,7 @@ class Adjust_Stimuli_Pos(EyelinkSession):
                                                  pos=self.right_pos,
                                                  italic=True,
                                                  height=20,
-                                                 alignHoriz='center',
+                                                 alignText ='center',
                                                  color=(1, 0, 0))
                                                  
     def draw_stimuli(self):
@@ -171,17 +171,21 @@ class Adjust_Stimuli_Pos(EyelinkSession):
                 break
                 
     def save_position(self):
+        
+        # check if positions should be saved
         self.screen.close()
         dlg = gui.Dlg(title='Save Position')
         dlg.addField('Save Position?', choices=["Yes", "No"])
         data = dlg.show()
-        
+    
+        # save position data to personal config file
         if data[0] == 'Yes':
-            with open('default_settings.json', 'w') as outfile:
-                json.dump(self.config, outfile, indent=2)
-                print('save')
+            self.save_config_file()
+            print('positions saved')
         else:
-            print('position not saved')
+            print('positions not saved')
+        
+        quit()
         
     def create_bg_texture(self, tex_size=1024, amplitude_exponent=1.0):
 

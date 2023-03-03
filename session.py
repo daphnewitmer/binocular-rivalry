@@ -15,8 +15,6 @@ import glob
 import random
 import pandas as pd
 from copy import copy
-import json
-
 
 class MEG_BR_Session(EyelinkSession):
 
@@ -24,14 +22,16 @@ class MEG_BR_Session(EyelinkSession):
 
         super(MEG_BR_Session, self).__init__(*args, **kwargs)
 
-        config_file = os.path.join(os.path.abspath(
-            os.getcwd()), 'default_settings.json')
+        self.get_config_settings()
+        self.setup_stimuli()
+        self.create_trials()
+        self.stopped = False
 
-        with open(config_file) as config_file:
-            self.config = json.load(config_file) 
+    def get_config_settings(self):
+        """ check if participant has a config file, load this in. 
+        Otherwise save config file for participant. """
         
-        # set config settings for run
-        self.config['color_eye_combination'] = self.color_combi
+        self.load_config_file()
         
         if "loc" in self.run_type:
             print("running localizer")
@@ -42,23 +42,16 @@ class MEG_BR_Session(EyelinkSession):
             self.config['replay'] = 0
             self.stimulus_duration = self.config['br_stimulus_duration'] # 180
             
-        if self.block_type.lower() == "practice":
+        if self.block_type.lower() == "practice": 
             print('running practice')
             self.stimulus_duration = self.stimulus_duration / 2
             
+        self.color_combi = self.config['color_eye_combination']
+            
         print(f"run time: {self.stimulus_duration}")
-        # save settings to default settings file
-        with open('default_settings.json', 'w') as outfile:
-            json.dump(self.config, outfile, indent=2)
         
-        # save default settings file for second run of participant
-        with open(f"data/{self.participant_nr}_default_settings.json", "w") as outfile:
-            json.dump(self.config, outfile, indent=4)
-        
-        self.setup_stimuli()
-        self.create_trials()
-        self.stopped = False
-
+        self.save_config_file()
+            
     def create_trials(self):
         """creates trials by creating a restricted random walk through the display from trial to trial"""
 
@@ -180,7 +173,7 @@ class MEG_BR_Session(EyelinkSession):
                                                tex=-red_grating1,                                               
                                                radialCycles=3,
                                                angularCycles=4,
-                                               mask='raisedCos',
+#                                               mask='raisedCos',
                                                size=self.deg2pix(
                                                    self.config['BR_stim_size']),
                                                texRes=512,
@@ -194,7 +187,7 @@ class MEG_BR_Session(EyelinkSession):
                                                tex=-green_grating1,                                               
                                                radialCycles=3,
                                                angularCycles=4,
-                                               mask='raisedCos',
+#                                               mask='raisedCos',
                                                size=self.deg2pix(
                                                    self.config['BR_stim_size']),
                                                texRes=512,
@@ -208,7 +201,7 @@ class MEG_BR_Session(EyelinkSession):
                                                tex=-red_grating2,                                               
                                                radialCycles=3,
                                                angularCycles=4,
-                                               mask='raisedCos',
+#                                               mask='raisedCos',
                                                size=self.deg2pix(
                                                    self.config['BR_stim_size']),
                                                texRes=512,
@@ -222,7 +215,7 @@ class MEG_BR_Session(EyelinkSession):
                                                tex=-green_grating2,                                               
                                                radialCycles=3,
                                                angularCycles=4,
-                                               mask='raisedCos',
+#                                               mask='raisedCos',
                                                size=self.deg2pix(
                                                    self.config['BR_stim_size']),
                                                texRes=512,
@@ -233,10 +226,10 @@ class MEG_BR_Session(EyelinkSession):
                                                interpolate=True)   
 
         # fusion aid background
-#        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
-#            tex_size=self.config['background_tex_size'], amplitude_exponent=self.config['background_amplitude_exponent']))))-1
+        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_texture(
+            tex_size=self.config['background_tex_size'], amplitude_exponent=self.config['background_amplitude_exponent']))))-1
             
-        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_guassian_texture(tex_size=self.config['background_tex_size']))))-1
+#        bg_tex = (2*np.sqrt(np.sqrt(self.create_bg_guassian_texture(tex_size=self.config['background_tex_size']))))-1
         self.bg_stimulus_left = visual.GratingStim(self.screen,
                                                    tex=bg_tex,
                                                    mask=None,
@@ -375,9 +368,8 @@ class MEG_BR_Session(EyelinkSession):
         self.close(trial)
 
     def close(self, trial):
-        file_name = f"{self.participant_nr}_{self.block_type}_{self.run_type}.tsv"
-        if not self.participant_nr == "Pilot":
-            file_name = f"P{file_name}"
+
+        file_name = os.path.split(self.output_file)[1]
         
         # for self report trials: save button press times
         if 'self_rep' in self.run_type: 
@@ -393,6 +385,9 @@ class MEG_BR_Session(EyelinkSession):
             df = trial.behavior_df
             df.to_csv(os.path.join(
                 os.path.split(self.output_file)[0], file_name), sep='\t')
+            df2 = pd.DataFrame(
+                self.trials[0].timing_array, columns=['ID', 'Time'])
+            df2.to_csv(os.path.join(os.path.split(self.output_file)[0], 'file_2.tsv'), sep='\t')
             
         # for localizer with fixation task: save [stimuli switch + fixation switch] + button press 
         elif self.run_type in ["loc_fix_task_1", "loc_fix_task_2"]:
@@ -400,4 +395,6 @@ class MEG_BR_Session(EyelinkSession):
             df = pd.DataFrame(
                 self.trials[0].timing_array, columns=['ID', 'Time'])
             df.to_csv(os.path.join(os.path.split(self.output_file)[0], file_name), sep='\t')
+            
+        quit()
         
