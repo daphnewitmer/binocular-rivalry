@@ -387,7 +387,8 @@ class MEG_BR_Session(EyelinkSession):
                 os.path.split(self.output_file)[0], file_name), sep='\t')
             df2 = pd.DataFrame(
                 self.trials[0].timing_array, columns=['ID', 'Time'])
-            df2.to_csv(os.path.join(os.path.split(self.output_file)[0], 'file_2.tsv'), sep='\t')
+            file_name_2 = f"ta_{file_name}"
+            df2.to_csv(os.path.join(os.path.split(self.output_file)[0], file_name_2), sep='\t')
             
         # for localizer with fixation task: save [stimuli switch + fixation switch] + button press 
         elif self.run_type in ["loc_fix_task_1", "loc_fix_task_2"]:
