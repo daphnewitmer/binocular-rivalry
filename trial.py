@@ -227,6 +227,7 @@ class MEG_BR_Trial(Trial):
                         self.color= '#0066CC'
                         self.val = 80
                         self.session.port.setData(event_nr)
+                        core.wait(0.005)
 #                        self.p = True
 #                        print('-------trigger fix---------')
 #                        print(clock.getTime())
@@ -248,6 +249,7 @@ class MEG_BR_Trial(Trial):
                         if self.trigger is not red:
                             self.trigger = red
                             self.session.port.setData(self.trigger)
+                            core.wait(0.005)
                             self.session.port.setData(0)
                             self.timing_array.append(
                                 [int(self.trigger), clock.getTime() - self.last_phase_time])
@@ -255,6 +257,7 @@ class MEG_BR_Trial(Trial):
                         if self.trigger is not green:
                             self.trigger = green
                             self.session.port.setData(self.trigger)
+                            core.wait(0.005)
                             # checking time, can be removed #
 #                            self.p = True
 #                            print('-------trigger stimuli---------')
